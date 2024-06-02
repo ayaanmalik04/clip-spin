@@ -4,7 +4,7 @@
     "task2_classes": 37,
     "task1_weight": 1,
     "task2_weight": 1,
-    "train_batch_size": 2,
+    "train_batch_size": 8,
     "val_batch_size": 4,
     "refinement":3,
     "train_dataset": {
@@ -62,7 +62,7 @@
         "lr_drop_epoch": "[50,90,110]"
     },
     "trainer": {
-        "total_epochs": 120,
+        "total_epochs": 20,
         "save_dir": "./deepglobe_exp/",
         "iter_size": 1,
         "test_freq": 5
