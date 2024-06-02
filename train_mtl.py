@@ -90,17 +90,18 @@ train_loss_angle_file = open(train_file_angle, "w")
 val_loss_angle_file = open(test_file_angle, "w")
 ################################################################################
 num_gpus = torch.cuda.device_count()
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 model = MODELS[args.model_name](
     config["task1_classes"], config["task2_classes"], **args.model_kwargs
 )
 
-# if num_gpus > 1:
-#     print("Training with multiple GPUs ({})".format(num_gpus))
-#     model = nn.DataParallel(model)
-# else:
-#     print("Single Cuda Node is avaiable")
-#     model
+if num_gpus > 1:
+    print("Training with multiple GPUs ({})".format(num_gpus))
+    model = nn.DataParallel(model).cuda()
+else:
+    print("Single Cuda Node is avaiable")
+    model.cuda()
 ################################################################################
 
 ### Load Dataset from root folder and intialize DataLoader
@@ -112,7 +113,7 @@ train_loader = data.DataLoader(
         multi_scale_pred=args.multi_scale_pred,
     ),
     batch_size=config["train_batch_size"],
-    num_workers=0,
+    num_workers=4,
     shuffle=True,
     pin_memory=False,
 )
@@ -125,7 +126,7 @@ val_loader = data.DataLoader(
         multi_scale_pred=args.multi_scale_pred,
     ),
     batch_size=config["val_batch_size"],
-    num_workers=0,
+    num_workers=4,
     shuffle=False,
     pin_memory=False,
 )
@@ -162,14 +163,14 @@ scheduler = MultiStepLR(
 )
 
 
-weights = torch.ones(config["task1_classes"])
+weights = torch.ones(config["task1_classes"]).cuda()
 if config["task1_weight"] < 1:
     print("Roads are weighted.")
     weights[0] = 1 - config["task1_weight"]
     weights[1] = config["task1_weight"]
 
 
-weights_angles = torch.ones(config["task2_classes"])
+weights_angles = torch.ones(config["task2_classes"]).cuda()
 if config["task2_weight"] < 1:
     print("Road angles are weighted.")
     weights_angles[-1] = config["task2_weight"]
@@ -177,10 +178,10 @@ if config["task2_weight"] < 1:
 
 angle_loss = CrossEntropyLoss2d(
     weight=weights_angles, size_average=True, ignore_index=255, reduce=True
-)
+).cuda()
 road_loss = mIoULoss(
     weight=weights, size_average=True, n_classes=config["task1_classes"]
-)
+).cuda()
 
 
 def train(epoch):
@@ -194,7 +195,11 @@ def train(epoch):
 
     for i, data in enumerate(train_loader, 0):
         inputsBGR, labels, vecmap_angles = data
-        inputsBGR = Variable(inputsBGR.float())
+        inputsBGR = Variable(inputsBGR.float().cuda())
+        labels = [label.to(device) for label in labels]
+        vecmap_angles = [angle.to(device) for angle in vecmap_angles]
+        
+        
         outputs, pred_vecmaps = model(inputsBGR)
         if args.multi_scale_pred:
             loss1 = road_loss(outputs[0], util.to_variable(labels[0]), False)
@@ -306,7 +311,9 @@ def test(epoch):
     hist_angles = np.zeros((config["task2_classes"], config["task2_classes"]))
     crop_size = config["val_dataset"][args.dataset]["crop_size"]
     for i, (inputsBGR, labels, vecmap_angles) in enumerate(val_loader, 0):
-        inputsBGR = Variable(inputsBGR.float())
+        inputsBGR = Variable(inputsBGR.cuda().float(), requires_grad=True)
+        labels = [label.to(device) for label in labels]
+        vecmap_angles = [angle.to(device) for angle in vecmap_angles]
 
         outputs, pred_vecmaps = model(inputsBGR)
         if args.multi_scale_pred:

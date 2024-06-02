@@ -4,7 +4,7 @@
     "task2_classes": 37,
     "task1_weight": 1,
     "task2_weight": 1,
-    "train_batch_size": 16,
+    "train_batch_size": 2,
     "val_batch_size": 4,
     "refinement":3,
     "train_dataset": {

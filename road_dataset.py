@@ -27,7 +27,7 @@ class RoadDataset(data.Dataset):
         self.img_root = os.path.join(self.dir, "images/")
         self.gt_root = os.path.join(self.dir, "gt/")
         self.image_list = self.config[dataset_name]["file"]
-        self.image_list = "/Users/ayaan/SPIN_RoadMapper/" + self.image_list
+        self.image_list = "/home/kaloca/CS231n/project/clip-spin" + self.image_list
         # list of all images
         self.images = [line.rstrip("\n") for line in open(self.image_list)]
 
@@ -52,8 +52,8 @@ class RoadDataset(data.Dataset):
         for f in self.images:
             self.files[self.split].append(
                 {
-                    "img": "/Users/ayaan/SPIN_RoadMapper" + self.img_root + f+ self.config[dataset_name]["image_suffix"],
-                    "lbl": "/Users/ayaan/SPIN_RoadMapper" + self.gt_root + f + self.config[dataset_name]["gt_suffix"],
+                    "img": "/home/kaloca/CS231n/project/clip-spin" + self.img_root + f+ self.config[dataset_name]["image_suffix"],
+                    "lbl": "/home/kaloca/CS231n/project/clip-spin" + self.gt_root + f + self.config[dataset_name]["gt_suffix"],
                 }
             )
 
