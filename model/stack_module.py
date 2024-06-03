@@ -8,6 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from model.SPIN import spin
 import cv2
+from transformers import AutoProcessor, CLIPVisionModel
 
 affine_par = True
 
@@ -151,6 +152,16 @@ class HourglassModuleMTL(nn.Module):
     def forward(self, x):
         return self._hour_glass_forward(self.depth, x)
 
+class UpsampleConv(nn.Module):
+    def __init__(self):
+        super(UpsampleConv, self).__init__()
+        self.conv = nn.ConvTranspose2d(
+            in_channels=768, out_channels=128, kernel_size=3, stride=10, padding=0, output_padding=1
+        )
+
+    def forward(self, x):
+        return self.conv(x)
+
 ################################################################
 ############### StackHOurGlassNet with SPIN ################
 ################################################################
@@ -169,6 +180,13 @@ class StackHourglassNetMTL_DGCNv4(nn.Module):
         depth=3,
     ):
         super(StackHourglassNetMTL_DGCNv4, self).__init__()
+
+        # Initialize the CLIP model and processor
+        self.clip_model = CLIPVisionModel.from_pretrained("openai/clip-vit-base-patch32").cuda()
+        self.processor = AutoProcessor.from_pretrained("openai/clip-vit-base-patch32")
+
+        # Initialize the upsample model
+        self.upsample_model = UpsampleConv().cuda()
 
         self.inplanes = 64
         self.num_feats = 128
@@ -277,44 +295,16 @@ class StackHourglassNetMTL_DGCNv4(nn.Module):
 
         rows = x.size(2)
         cols = x.size(3)
-        # from transformers import CLIPImageProcessor, CLIPVisionModel
 
-        # feature_extractor = CLIPImageProcessor(do_rescale=False).from_pretrained('openai/clip-vit-base-patch32')
-        # vm = CLIPVisionModel.from_pretrained('openai/clip-vit-base-patch32')
-        # # vm.base_model.layers = vm.base_model.layers[:-1]
-        # print(CLIPVisionModel.)
-        # x = feature_extractor(x, return_tensors='pt')
-        # x = vm(**x)
-        # print(x.shape)
-        # print(x.shape)
-        # x = self.conv1(x)
-        # x = self.bn1(x)
-        # x = self.relu(x)
-        # x = self.layer1(x)
-        # x = self.maxpool(x)
-        # x = self.layer2(x)
-        # x = self.layer3(x)
-        from transformers import AutoProcessor, CLIPVisionModel
-
-        # Load the CLIP vision model and processor, and move the model to GPU
-        clip_model = CLIPVisionModel.from_pretrained("openai/clip-vit-base-patch32").cuda()
-        processor = AutoProcessor.from_pretrained("openai/clip-vit-base-patch32")
-
-        # Ensure input tensor `x` is on the GPU
-        x = torch.clamp(x, min=-71.30953979492188, max=182.69046020507812).cuda()  # Move to GPU
-
-        # Normalize the input tensor
+        x = x.cuda()
         x = (x - x.min()) / (x.max() - x.min())
 
         # Process the input tensor using the processor
-        inputs = processor(images=x, do_rescale=False, return_tensors="pt").to("cuda")
-
-        # Ensure the processed inputs are moved to the GPU
-        inputs = {key: value.cuda() for key, value in inputs.items()}
+        inputs = self.processor(images=x, do_rescale=False, return_tensors="pt").to("cuda")
 
         # Use the model in no-gradient mode
         with torch.no_grad():
-            outputs = clip_model(**inputs)
+            outputs = self.clip_model(**inputs)
             x = outputs.last_hidden_state
 
         # Process the output of the CLIP model
@@ -327,21 +317,10 @@ class StackHourglassNetMTL_DGCNv4(nn.Module):
         reshaped_output = x.view(batch_size, grid_size, grid_size, feature_dim)
         reshaped_output = reshaped_output.permute(0, 3, 1, 2)
 
-        # Define and use the UpsampleConv layer
-        class UpsampleConv(nn.Module):
-            def __init__(self):
-                super(UpsampleConv, self).__init__()
-                self.conv = nn.ConvTranspose2d(
-                    in_channels=768, out_channels=128, kernel_size=3, stride=10, padding=0, output_padding=1
-                )
-
-            def forward(self, x):
-                return self.conv(x)
-
-        # Move the upsample model to GPU and apply it
-        upsample_model = UpsampleConv().cuda()
-        x = upsample_model(reshaped_output)
-        print(x.shape)
+        # Apply upsample model
+        x = self.upsample_model(reshaped_output)
+        # print(f"Upsampled x shape: {x.shape}")
+        # print(x.shape)
 
         for i in range(self.num_stacks):
             y1, y2 = self.hg[i](x)

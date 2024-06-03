@@ -110,7 +110,7 @@ train_loader = data.DataLoader(
         multi_scale_pred=args.multi_scale_pred,
     ),
     batch_size=config["train_batch_size"],
-    num_workers=8,
+    num_workers=6,
     shuffle=True,
     pin_memory=False,
 )
@@ -123,7 +123,7 @@ val_loader = data.DataLoader(
         multi_scale_pred=args.multi_scale_pred,
     ),
     batch_size=config["val_batch_size"],
-    num_workers=8,
+    num_workers=6,
     shuffle=False,
     pin_memory=False,
 )

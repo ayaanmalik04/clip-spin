@@ -11,15 +11,15 @@
         "spacenet":{
             "dir": "/data/spacenet/train_crops/",
             "file": "/data/spacenet/train_crops.txt",
-            "image_suffix": ".jpg",
-            "gt_suffix": ".jpg",
+            "image_suffix": ".png",
+            "gt_suffix": ".png",
             "crop_size": 256
         },
         "deepglobe":{
             "dir": "./data/deepglobe/train_crops/",
             "file": "./data/deepglobe/train_crops.txt",
-            "image_suffix": ".jpg",
-            "gt_suffix": ".jpg",
+            "image_suffix": ".png",
+            "gt_suffix": ".png",
             "crop_size": 256
         },
         "crop_size": 256,
@@ -35,15 +35,15 @@
         "spacenet":{
             "dir": "/data/spacenet/val_crops/",
             "file": "/data/spacenet/val_crops.txt",
-            "image_suffix": ".jpg",
-            "gt_suffix": ".jpg",
+            "image_suffix": ".png",
+            "gt_suffix": ".png",
             "crop_size": 256
         },
         "deepglobe":{
             "dir": "./data/deepglobe/val_crops/",
             "file": "./data/deepglobe/val_crops.txt",
-            "image_suffix": ".jpg",
-            "gt_suffix": ".jpg",
+            "image_suffix": ".png",
+            "gt_suffix": ".png",
             "crop_size": 512
         },
         "crop_size": 512,

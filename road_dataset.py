@@ -74,7 +74,8 @@ class RoadDataset(data.Dataset):
             print("ERROR: couldn't find image -> ", image_dict["lbl"])
 
         if self.split == "train":
-            image, gt = self.random_crop(image, gt, self.crop_size)
+            pass
+            # image, gt = self.random_crop(image, gt, self.crop_size)
         else:
             image = cv2.resize(
                 image,
